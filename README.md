@@ -1,45 +1,101 @@
 # Vercel Clone
 
-YouTube Video Link: https://youtu.be/0A_JpLYG7hM
+This project is a simplified, open-source clone of Vercel, designed to demonstrate a complete CI/CD pipeline for web applications. It allows users to deploy their frontend projects directly from a GitHub repository. The system automatically builds the project inside a Docker container, pushes the static assets to an AWS S3 bucket, and provides a unique preview URL for the deployed site.
 
-Whiteboard Diagram: https://app.eraser.io/workspace/0f8XnDF61iGcatypPqIR?origin=share
+## Architecture
 
-### Prerequisite
+The application is built on a microservices architecture, consisting of the following main components:
 
-- Node.JS: [Master NodeJS Playlist](https://youtube.com/playlist?list=PLinedj3B30sDby4Al-i13hQJGQoRQDfPo&si=5gaDmQ_mzuBHvAsg)
-- Redis: [Redis Crash Course](https://youtu.be/Vx2zPMPvmug?si=Z_XT6BMNgkgwnX49)
-- Learn Docker:
-  - Part 1: [Docker in One Shot - Part 1](https://youtu.be/31k6AtW-b3Y?si=FIPffAKieiBGgo5c)
-  - Part 2: [Docker in One Shot - Part 2](https://youtu.be/xPT8mXa-sJg?si=-6z_HkJZXsvrvSpO)
-- Docker with AWS ECS and ECR: [Real World Docker Deployments with AWS](https://youtu.be/AiiFbsAlLaI?si=dKrFZFr7fLBXKSab)
+1.  **Frontend (Next.js)**: A web interface where users can submit the URL of a GitHub repository for deployment. It provides real-time feedback on the build and deployment process.
+2.  **API Server (Node.js/Express)**: A backend service that accepts deployment requests, generates a unique ID for the project, and triggers the build process by running an AWS ECS task.
+3.  **Build Server (Docker/Node.js)**: A containerized environment responsible for cloning the user's repository, installing dependencies, running the build command, and uploading the generated static files to AWS S3.
+4.  **S3 Reverse Proxy (Node.js/Express)**: A reverse proxy that routes requests from the generated preview URLs (`<project-id>.localhost:8000`) to the corresponding static files stored in the S3 bucket.
+5.  **Real-time Logging (Socket.io & Redis)**: A system for providing live build logs to the user. The Build Server publishes logs to a Redis channel, and the API Server (acting as a Socket.io server) broadcasts these logs to the connected frontend client.
 
-### Setup Guide
+### Architecture Diagram
 
-This Project contains following services and folders:
 
-- `api-server`: HTTP API Server for REST API's
-- `build-server`: Docker Image code which clones, builds and pushes the build to S3
-- `s3-reverse-proxy`: Reverse Proxy the subdomains and domains to s3 bucket static assets
 
-### Local Setup
+## Features
 
-1. Run `npm install` in all the 3 services i.e. `api-server`, `build-server` and `s3-reverse-proxy`
-2. Docker build the `build-server` and push the image to AWS ECR.
-3. Setup the `api-server` by providing all the required config such as TASK ARN and CLUSTER arn.
-4. Run `node index.js` in `api-server` and `s3-reverse-proxy`
+- **Deploy from GitHub**: Enter a public GitHub repository URL to kick off the deployment.
+- **Automated Builds**: Projects are automatically built in an isolated Docker environment on AWS ECS.
+- **Static Asset Hosting**: Build outputs are stored in an AWS S3 bucket.
+- **Unique Preview URLs**: Each deployment gets a unique subdomain for easy access.
+- **Real-time Build Logs**: Watch the build process live from the web interface.
 
-At this point following services would be up and running:
+## Tech Stack
 
-| S.No | Service            | PORT    |
-| ---- | ------------------ | ------- |
-| 1    | `api-server`       | `:9000` |
-| 2    | `socket.io-server` | `:9002` |
-| 3    | `s3-reverse-proxy` | `:8000` |
+- **Frontend**: Next.js, React, TypeScript, Tailwind CSS, shadcn/ui, Socket.io Client, Axios
+- **Backend**: Node.js, Express.js
+- **CI/CD & Infrastructure**: AWS (ECS, ECR, S3), Docker
+- **Real-time Communication**: Socket.io, Redis (Pub/Sub)
 
-### Demo
+## Project Structure
 
-[Watch The Demo Video](https://imgur.com/I6KgmNR)
+```
+vercel-clone/
+├── api-server/         # Handles API requests, triggers builds, and manages WebSockets
+├── build-server/       # Dockerized environment for building projects
+├── frontend-nextjs/    # The Next.js user interface
+└── s3-reverse-proxy/   # Routes preview URLs to S3 assets
+```
 
-### Architecture
+## Prerequisites
 
-![Vercel Clone Architecture](https://i.imgur.com/r7QUXqZ.png)
+Before you begin, ensure you have the following installed and configured:
+
+- Node.js
+- Docker
+- Redis
+- An AWS account with credentials configured locally.
+
+## Local Setup Guide
+
+1.  **Clone the Repository**
+
+    ```bash
+    git clone <your-repository-url>
+    cd vercel-clone
+    ```
+
+2.  **Install Dependencies**
+
+    Run `npm install` in each of the service directories:
+    - `api-server`
+    - `build-server`
+    - `frontend-nextjs`
+    - `s3-reverse-proxy`
+
+3.  **Configure Environment Variables**
+
+    You will need to set up your AWS credentials and configuration for the `api-server` and `build-server`. This includes:
+    - AWS Region, Access Key ID, and Secret Access Key
+    - AWS ECS Cluster and Task Definition ARNs
+    - AWS VPC Subnets and Security Groups
+    - Redis connection string
+
+4.  **Build and Push the Build Server Image**
+
+    Navigate to the `build-server` directory, build the Docker image, and push it to your AWS ECR repository.
+
+5.  **Run the Services**
+
+    - Start the frontend development server:
+      ```bash
+      cd frontend-nextjs && npm run dev
+      ```
+    - Start the API server:
+      ```bash
+      cd api-server && node index.js
+      ```
+    - Start the S3 reverse proxy:
+      ```bash
+      cd s3-reverse-proxy && node index.js
+      ```
+
+Your local environment is now ready!
+- Frontend will be available at `http://localhost:3000`.
+- API Server will be running on port `9000`.
+- S3 Reverse Proxy will be running on port `8000`.
+- Socket.io server for logs will be on port `9002`.
